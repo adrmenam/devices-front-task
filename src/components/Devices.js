@@ -1,12 +1,21 @@
 import React, {Component} from 'react';
-import {Dialog} from 'primereact/dialog';
-import {Panel} from 'primereact/panel';
-import {DataView, DataViewLayoutOptions} from "primereact/dataview";
-import {Button} from "primereact/button";
-import {Dropdown} from "primereact/dropdown";
-import 'primereact/resources/themes/nova-light/theme.css';
-import 'primereact/resources/primereact.min.css';
-import axios from 'axios';
+import {Grid, Row, Col} from 'react-bootstrap';
+import {ListGroup, ListGroupItem, Modal} from 'react-bootstrap';
+import {ButtonGroup, Button} from 'react-bootstrap';
+import Select from 'react-select';
+
+const typeOptions = [
+    { value: '!', label: 'All' },
+    { value: 'WINDOWS_WORKSTATION', label: 'Windows Workstation' },
+    { value: 'WINDOWS_SERVER', label: 'Windows Server' },
+    { value: 'MAC', label: 'MAC' }
+];
+
+const sortOptions = [
+    { value: 'system_name', label: 'System Name' },
+    { value: 'hdd_capacity', label: 'HDD Capacity' }
+];
+
 
 class Devices extends Component {
 
@@ -14,15 +23,15 @@ class Devices extends Component {
         super();
         this.state = {
             devices: [],
-            layout: 'list',
+            selectedType: typeOptions[0],
+            selectedSort: null,
             selectedDevice: null,
-            visible: false,
-            sortKey: null,
-            sortOrder: null
+            showModal: false
         };
 
-        this.itemTemplate = this.itemTemplate.bind(this);
-        this.onSortChange = this.onSortChange.bind(this);
+        this.handleShowModal = this.handleShowModal.bind(this);
+        this.handleCloseModal = this.handleCloseModal.bind(this);
+
     }
 
     componentDidMount() {
@@ -30,161 +39,134 @@ class Devices extends Component {
     }
 
     getData(){
-        axios.get(`http://localhost:3000/devices`)
-            .then(res =>  {
-                const data = res.data;
-
-                this.setState({ devices: data });
-                console.log("stateComponentDidMount: ", this.state);
-
-            }).catch(function (error) {
-                console.log(error);
-            });
+        fetch('http://localhost:3000/devices')
+            .catch(err => console.error(err))
+            .then(results => results.json())
+            .then(results => this.setState({ devices: results }));
     }
 
-    onSortChange(event) {
-        const value = event.value;
+    handleChangeType = (selectedType) => {
+        this.setState({ selectedType });
+        console.log(`Type selected:`, selectedType);
+    };
 
-        if (value.indexOf('!') === 0) {
-            this.setState({
-                sortOrder: -1,
-                sortField: value.substring(1, value.length),
-                sortKey: value
-            });
-        }
-        else {
-            this.setState({
-                sortOrder: 1,
-                sortField: value,
-                sortKey: value
-            });
-        }
+    handleChangeSort = (selectedSort) => {
+        this.setState({ selectedSort });
+        console.log(`Sort selected:`, selectedSort);
+    };
+
+    replaceModalItem(index){
+        this.setState({selectedDevice: index});
     }
 
-    renderListItem(device) {
-        return (
-            <div className="p-col-12" style={{padding: '2em', borderBottom: '1px solid #d9d9d9'}}>
-                <div className="p-col-12 p-md-3">
-
-                </div>
-                <div className="p-col-12 p-md-8 device-details">
-                    <div className="p-grid">
-                        <div className="p-col-2 p-sm-6">Id:</div>
-                        <div className="p-col-10 p-sm-6">{device.id}</div>
-
-                        <div className="p-col-2 p-sm-6">System name:</div>
-                        <div className="p-col-10 p-sm-6">{device.system_name}</div>
-
-                        <div className="p-col-2 p-sm-6">Type:</div>
-                        <div className="p-col-10 p-sm-6">{device.type}</div>
-
-                        <div className="p-col-2 p-sm-6">HDD capacity:</div>
-                        <div className="p-col-10 p-sm-6">{device.hdd_capacity}</div>
-                    </div>
-                </div>
-
-                <div className="p-col-12 p-md-1 search-icon" style={{marginTop:'40px'}}>
-                    <Button icon="pi pi-search" onClick={(e) => this.setState({ selectedDevice: device, visible: true })}></Button>
-                </div>
-            </div>
-        );
+    saveModalDetails(device){
+        //guardar en api
+        //this.getData();
     }
 
-    renderGridItem(device) {
-        return (
-            <div style={{ padding: '.5em' }} className="p-col-12 p-md-3">
-                <Panel header={device.id} style={{ textAlign: 'center' }}>
-
-                    <div className="device-detail">{device.system_name} - {device.hdd_capacity}</div>
-                    <hr className="ui-widget-content" style={{ borderTop: 0 }} />
-                    <Button icon="pi pi-search" onClick={(e) => this.setState({ selectedDevice: device, visible: true })}></Button>
-                </Panel>
-            </div>
-        );
+    handleHideModal(){
+        this.setState({view: {showModal: false}})
     }
 
-    itemTemplate(device, layout) {
-        if (!device) {
-            return;
-        }
-
-        if (layout === 'list')
-            return this.renderListItem(device);
-        else if (layout === 'grid')
-            return this.renderGridItem(device);
+    handleCloseModal() {
+        this.setState({ showModal: false });
     }
 
-    renderDeviceDialogContent() {
-        if (this.state.selectedDevice) {
-            return (
-                <div className="p-grid" style={{fontSize: '16px', textAlign: 'center', padding: '20px'}}>
-                    <div className="p-col-12" style={{textAlign: 'center'}}>
-                    </div>
-
-                    <div className="p-col-4">Id: </div>
-                    <div className="p-col-8">{this.state.selectedDevice.id}</div>
-
-                    <div className="p-col-4">System name: </div>
-                    <div className="p-col-8">{this.state.selectedDevice.system_name}</div>
-
-                    <div className="p-col-4">Type: </div>
-                    <div className="p-col-8">{this.state.selectedDevice.type}</div>
-
-                    <div className="p-col-4">HDD Capacity: </div>
-                    <div className="p-col-8">{this.state.selectedDevice.hdd_capacity}</div>
-                </div>
-            );
-        }
-        else {
-            return null;
-        }
-    }
-
-    renderHeader() {
-        const sortOptions = [
-            {label: 'Type', value: 'type'},
-            {label: 'System Name', value: 'system_name'},
-            {label: 'HDD Capacity', value: 'hdd_capacity'}
-        ];
-
-        return (
-            <div className="p-grid">
-                <div className="p-col-6" style={{textAlign: 'left'}}>
-                    <Dropdown options={sortOptions} value={this.state.sortKey} placeholder="Sort By" onChange={this.onSortChange} />
-                </div>
-                <div className="p-col-6" style={{textAlign: 'right'}}>
-                    <DataViewLayoutOptions layout={this.state.layout} onChange={(e) => this.setState({layout: e.value})} />
-                </div>
-            </div>
-        );
+    handleShowModal() {
+        this.setState({ showModal: true });
     }
 
     render() {
-        const header = this.renderHeader();
-        console.log("render: ", this.state.devices);
-        return (
-            <div>
-                <div className="content-section introduction">
-                    <div className="feature-intro">
-                        <h1>DataView</h1>
-                        <p>DataView displays data in grid or list layout with pagination, sorting and filtering features.</p>
-                    </div>
+        const { selectedType, selectedSort } = this.state;
+
+        const devices = this.state.devices
+            .filter(device => (selectedType.value!=='!') ? device.type === selectedType.value : true)
+            .sort((a,b) => {
+                if(selectedSort){
+                    if(selectedSort.value==='hdd_capacity') {
+                        return parseInt(a[selectedSort.value]) > parseInt(b[selectedSort.value]);
+                    } else {
+                        return a[selectedSort.value] > b[selectedSort.value];
+                    }
+                } else {
+                    return true;
+                }
+            } )
+            .map((device, index) => {
+                return(
+                <ListGroupItem key={index}>
+                    <Grid>
+                        <Row>
+                            <Col xs={6} md={6}>
+                                {device.system_name}<br/>
+                                {device.type}<br/>
+                                {device.hdd_capacity}
+                            </Col>
+                            <Col xs={6} md={6}>
+                                <ButtonGroup>
+                                    <Button onClick={this.handleShowModal}>Edit</Button>
+                                    <Button>Delete</Button>
+                                </ButtonGroup>
+                            </Col>
+                        </Row>
+                    </Grid>
+                </ListGroupItem>
+                )
+            });
+
+
+        if(this.state.devices.length > 0) {
+            return(
+                <div>
+                    <br/>
+                    <Grid>
+                        <Row>
+                            <Col xs={6} md={6}>
+                                <Select
+                                    value={selectedType}
+                                    onChange={this.handleChangeType}
+                                    options={typeOptions}
+                                />
+                            </Col>
+                            <Col xs={6} md={6}>
+                                <Select
+                                    value={selectedSort}
+                                    onChange={this.handleChangeSort}
+                                    options={sortOptions}
+                                />
+                            </Col>
+                        </Row>
+
+                    </Grid>
+                    <br/>
+                    <ListGroup>
+                        {devices}
+                    </ListGroup>
+                    <Modal show={this.state.showModal} onHide={this.handleCloseModal}>
+                        <Modal.Header closeButton>
+                            <Modal.Title>New Device</Modal.Title>
+                        </Modal.Header>
+                        <Modal.Body>
+                            <h4>Fill the device information</h4>
+                                <p><span className="modal-label">Id:</span><input disabled={true} value={this.state.selectedDevice.id} onChange={(e) => this.idHandler(e)} /></p>
+                                <p><span className="modal-label">System Name:</span><input value={this.state.selectedDevice.system_name} onChange={(e) => this.systemNameHandler(e)} /></p>
+                                <p><span className="modal-label">Type:</span><input value={this.state.selectedDevice.type} onChange={(e) => this.typeHandler(e)} /></p>
+                                <p><span className="modal-label">HDD Capacity:</span><input value={this.state.selectedDevice.hdd_capacity} onChange={(e) => this.hddCapacityHandler(e)} /></p>
+                        </Modal.Body>
+                        <Modal.Footer>
+                            <Button onClick={this.handleSaveDevice}>Save</Button>
+                            <Button onClick={this.handleCloseModal}>Close</Button>
+                        </Modal.Footer>
+                    </Modal>
                 </div>
-                {this.state.devices.map(station => <div> {station.id} </div>)}
-                <div className="content-section implementation">
-                    <DataView value={this.state.devices} layout={this.state.layout} header={header}
-                              itemTemplate={this.itemTemplate} paginatorPosition={'both'} paginator={true} rows={20}
-                              sortOrder={this.state.sortOrder} sortField={this.state.sortField} />
-
-                    <Dialog header="Car Details" visible={this.state.visible} width="225px" modal={true} onHide={() => this.setState({visible: false})}>
-                        {this.renderDeviceDialogContent()}
-                    </Dialog>
-                </div>
-
-
-            </div>
-        );
+            )
+        } else {
+            return(
+                <h3>Loading data...</h3>
+            )
+        }
     }
+
 }
 
 export default Devices;
