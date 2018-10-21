@@ -11,6 +11,12 @@ const typeOptions = [
     { value: 'MAC', label: 'MAC' }
 ];
 
+const typeOptionsModal = [
+    { value: 'WINDOWS_WORKSTATION', label: 'Windows Workstation' },
+    { value: 'WINDOWS_SERVER', label: 'Windows Server' },
+    { value: 'MAC', label: 'MAC' }
+];
+
 const sortOptions = [
     { value: 'system_name', label: 'System Name' },
     { value: 'hdd_capacity', label: 'HDD Capacity' }
@@ -25,12 +31,16 @@ class Devices extends Component {
             devices: [],
             selectedType: typeOptions[0],
             selectedSort: null,
-            selectedDevice: null,
-            showModal: false
+            selectedDevice: {system_name: '', type: typeOptionsModal[0].value, hdd_capacity: ''},
+            selectedTypeModal: typeOptionsModal[0],
+            showModal: false,
+            showNewModal: false,
+            modalMethod: null
         };
 
         this.handleShowModal = this.handleShowModal.bind(this);
         this.handleCloseModal = this.handleCloseModal.bind(this);
+        this.handleSaveDevice = this.handleSaveDevice.bind(this);
 
     }
 
@@ -55,25 +65,89 @@ class Devices extends Component {
         console.log(`Sort selected:`, selectedSort);
     };
 
-    replaceModalItem(index){
-        this.setState({selectedDevice: index});
+    handleSaveDevice(){
+        if(this.state.modalMethod === 'Edit'){
+            return fetch(`http://localhost:3000/devices/${this.state.selectedDevice.id}`, {
+                method: 'PUT',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify(this.state.selectedDevice)
+            }).then(response => {
+                response.json();
+                console.log(response);
+                this.getData();
+                this.setState({showModal: false});
+            });
+        }else{
+            return fetch(`http://localhost:3000/devices`, {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify(this.state.selectedDevice)
+            }).then(response => {
+                response.json();
+                console.log(response);
+                this.getData();
+                this.setState({showModal: false});
+            });
+        }
+
     }
 
-    saveModalDetails(device){
-        //guardar en api
-        //this.getData();
+    handleDeleteDevice(device){
+        console.log('borrar', device.id);
+        return fetch(`http://localhost:3000/devices/${device.id}`, {
+            method: 'DELETE',
+        }).then(response => {
+            response.json();
+            console.log(response);
+            this.getData();
+        });
+
     }
 
-    handleHideModal(){
-        this.setState({view: {showModal: false}})
+    systemNameHandler(e){
+        let selectedDevice = Object.assign({}, this.state.selectedDevice);
+        selectedDevice.system_name = e.target.value;
+        this.setState({selectedDevice});
+        console.log('systemNameEditado: ',this.state.selectedDevice);
+    }
+
+    handleChangeTypeModal = (selectedTypeModal) => {
+        let selectedDevice = Object.assign({}, this.state.selectedDevice);
+        selectedDevice.type = selectedTypeModal.value;
+        this.setState({selectedDevice, selectedTypeModal});
+        console.log('typeEditado: ',this.state.selectedDevice);
+    };
+
+
+    hddCapacityHandler(e){
+        let selectedDevice = Object.assign({}, this.state.selectedDevice);
+        selectedDevice.hdd_capacity = e.target.value;
+        this.setState({selectedDevice});
+        console.log('hddEditado: ',this.state.selectedDevice);
     }
 
     handleCloseModal() {
         this.setState({ showModal: false });
     }
 
-    handleShowModal() {
-        this.setState({ showModal: true });
+    handleShowModal(type, device) {
+        console.log('modal -> ', type);
+        this.setState({ showModal: true, modalMethod : type, selectedDevice: device });
+        if(device.type === 'WINDOWS_WORKSTATION')
+            this.setState({selectedTypeModal: typeOptionsModal[0]});
+        else if(device.type === 'WINDOWS_SERVER')
+            this.setState({selectedTypeModal: typeOptionsModal[1]});
+        else
+            this.setState({selectedTypeModal: typeOptionsModal[2]});
+
+    }
+
+    onKeyPressNumbers(e) {
+        const re = /^[0-9\b]+$/;
+        const keyCode = e.keyCode || e.which;
+        const keyValue = String.fromCharCode(keyCode);
+        if (!re.test(keyValue))
+            e.preventDefault();
     }
 
     render() {
@@ -104,8 +178,8 @@ class Devices extends Component {
                             </Col>
                             <Col xs={6} md={6}>
                                 <ButtonGroup>
-                                    <Button onClick={this.handleShowModal}>Edit</Button>
-                                    <Button>Delete</Button>
+                                    <Button onClick={this.handleShowModal.bind(this, 'Edit', device)}>Edit</Button>
+                                    <Button onClick={this.handleDeleteDevice.bind(this, device)}>Delete</Button>
                                 </ButtonGroup>
                             </Col>
                         </Row>
@@ -121,14 +195,14 @@ class Devices extends Component {
                     <br/>
                     <Grid>
                         <Row>
-                            <Col xs={6} md={6}>
+                            <Col xs={6} md={6} lg={6} sm={6}>
                                 <Select
                                     value={selectedType}
                                     onChange={this.handleChangeType}
                                     options={typeOptions}
                                 />
                             </Col>
-                            <Col xs={6} md={6}>
+                            <Col xs={6} md={6} lg={6} sm={6}>
                                 <Select
                                     value={selectedSort}
                                     onChange={this.handleChangeSort}
@@ -139,19 +213,22 @@ class Devices extends Component {
 
                     </Grid>
                     <br/>
+                    <Button onClick={this.handleShowModal.bind(this, 'Add', {system_name: '', type: typeOptionsModal[0].value, hdd_capacity: ''})}>Add Device</Button>
+                    <br/>
+                    <br/>
+
                     <ListGroup>
                         {devices}
                     </ListGroup>
                     <Modal show={this.state.showModal} onHide={this.handleCloseModal}>
                         <Modal.Header closeButton>
-                            <Modal.Title>New Device</Modal.Title>
+                            <Modal.Title>{this.state.modalMethod} Device</Modal.Title>
                         </Modal.Header>
                         <Modal.Body>
                             <h4>Fill the device information</h4>
-                                <p><span className="modal-label">Id:</span><input disabled={true} value={this.state.selectedDevice.id} onChange={(e) => this.idHandler(e)} /></p>
-                                <p><span className="modal-label">System Name:</span><input value={this.state.selectedDevice.system_name} onChange={(e) => this.systemNameHandler(e)} /></p>
-                                <p><span className="modal-label">Type:</span><input value={this.state.selectedDevice.type} onChange={(e) => this.typeHandler(e)} /></p>
-                                <p><span className="modal-label">HDD Capacity:</span><input value={this.state.selectedDevice.hdd_capacity} onChange={(e) => this.hddCapacityHandler(e)} /></p>
+                                <p><span className="modal-label">System Name *: </span><input value={this.state.selectedDevice.system_name} onChange={(e) => this.systemNameHandler(e)} /></p>
+                                <p><span className="modal-label">Type *: </span><Select value={this.state.selectedTypeModal} onChange={this.handleChangeTypeModal} options={typeOptionsModal}/></p>
+                                <p><span className="modal-label">HDD Capacity (GB) *: </span><input type="number" value={this.state.selectedDevice.hdd_capacity} onKeyPress={this.onKeyPressNumbers.bind(this)} onChange={(e) => this.hddCapacityHandler(e)} /></p>
                         </Modal.Body>
                         <Modal.Footer>
                             <Button onClick={this.handleSaveDevice}>Save</Button>

@@ -18,6 +18,15 @@
   color: white;
 }
 
+.App-main {
+  background-color: rgba(77, 78, 112, 0.99);
+  justify-content: center;
+  display: block;
+  margin: 0 auto;
+  margin-top: 1em;
+  max-width: 95%;
+}
+
 .App-link {
   color: #61dafb;
 }

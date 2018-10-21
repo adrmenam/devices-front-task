@@ -12,7 +12,7 @@ class App extends Component {
                 </div>
 
             </header>
-            <main>
+            <main className="App-main">
                 <Devices/>
             </main>
         </div>
