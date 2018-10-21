@@ -57,12 +57,10 @@ class Devices extends Component {
 
     handleChangeType = (selectedType) => {
         this.setState({ selectedType });
-        console.log(`Type selected:`, selectedType);
     };
 
     handleChangeSort = (selectedSort) => {
         this.setState({ selectedSort });
-        console.log(`Sort selected:`, selectedSort);
     };
 
     handleSaveDevice(){
@@ -73,7 +71,6 @@ class Devices extends Component {
                 body: JSON.stringify(this.state.selectedDevice)
             }).then(response => {
                 response.json();
-                console.log(response);
                 this.getData();
                 this.setState({showModal: false});
             });
@@ -84,7 +81,6 @@ class Devices extends Component {
                 body: JSON.stringify(this.state.selectedDevice)
             }).then(response => {
                 response.json();
-                console.log(response);
                 this.getData();
                 this.setState({showModal: false});
             });
@@ -93,12 +89,10 @@ class Devices extends Component {
     }
 
     handleDeleteDevice(device){
-        console.log('borrar', device.id);
         return fetch(`http://localhost:3000/devices/${device.id}`, {
             method: 'DELETE',
         }).then(response => {
             response.json();
-            console.log(response);
             this.getData();
         });
 
@@ -108,14 +102,12 @@ class Devices extends Component {
         let selectedDevice = Object.assign({}, this.state.selectedDevice);
         selectedDevice.system_name = e.target.value;
         this.setState({selectedDevice});
-        console.log('systemNameEditado: ',this.state.selectedDevice);
     }
 
     handleChangeTypeModal = (selectedTypeModal) => {
         let selectedDevice = Object.assign({}, this.state.selectedDevice);
         selectedDevice.type = selectedTypeModal.value;
         this.setState({selectedDevice, selectedTypeModal});
-        console.log('typeEditado: ',this.state.selectedDevice);
     };
 
 
@@ -123,7 +115,6 @@ class Devices extends Component {
         let selectedDevice = Object.assign({}, this.state.selectedDevice);
         selectedDevice.hdd_capacity = e.target.value;
         this.setState({selectedDevice});
-        console.log('hddEditado: ',this.state.selectedDevice);
     }
 
     handleCloseModal() {
@@ -158,12 +149,12 @@ class Devices extends Component {
             .sort((a,b) => {
                 if(selectedSort){
                     if(selectedSort.value==='hdd_capacity') {
-                        return parseInt(a[selectedSort.value]) > parseInt(b[selectedSort.value]);
+                        return (parseInt(a[selectedSort.value]) > parseInt(b[selectedSort.value])) ? 1 : -1;
                     } else {
-                        return a[selectedSort.value] > b[selectedSort.value];
+                        return (a[selectedSort.value] > b[selectedSort.value]) ? 1 : -1;
                     }
                 } else {
-                    return true;
+                    return 0;
                 }
             } )
             .map((device, index) => {
@@ -196,6 +187,7 @@ class Devices extends Component {
                     <Grid>
                         <Row>
                             <Col xs={6} md={6} lg={6} sm={6}>
+                                <p className="filter-label">Device Type:</p>
                                 <Select
                                     value={selectedType}
                                     onChange={this.handleChangeType}
@@ -203,10 +195,12 @@ class Devices extends Component {
                                 />
                             </Col>
                             <Col xs={6} md={6} lg={6} sm={6}>
+                                <p className="filter-label">Sort by:</p>
                                 <Select
                                     value={selectedSort}
                                     onChange={this.handleChangeSort}
                                     options={sortOptions}
+                                    placeholder={"Select an option... "}
                                 />
                             </Col>
                         </Row>
